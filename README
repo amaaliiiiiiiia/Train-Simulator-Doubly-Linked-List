@@ -1,133 +1,41 @@
-Fisierul tren.h:
-Am definit doua structuri de date: Vagon care are 3 argumente (numele vagonului, un pointer la vagonul anterior
-si un pointer la vagonul urmator) si Tren care are 2 argumente (un pointer catre adresa la care se afla locomotiva
-trenului si un pointer catre adresa la care se afla mecanicul).
+Train Simulator (Doubly Linked List & Task Queue)
+This project implements a train management system using dynamic data structures and a command queue for task execution.
 
-Functia MOVE_LEFT: primeste ca parametru trenul
-Cazul cand mecanicul se afla initial in primul vagon (in stanga lui se afla locomotiva):
--acesta se va deplasa in ultimul vagon
-In caz ca mecanicul nu este in primul vagon vagon:
--se va deplasa in vagonul imediat din stanga
+## Data Structures (tren.h file)
+I have defined two main structures to represent the train:
 
-Functia MOVE_RIGHT: primeste ca parametru trenul
-Cazul cand mecanicul se afla in ultimul vagon:
--aloc memorie pentru un nou vagon si ii initializez numele cu "#"
--il conectez la ultimul vagon din tren si la locomotiva acestuia, apoi mut mecanicul in noul vagon
-In caz ca mecanicul nu este in ultimul vagon:
--mut mecanicul in vagonul din dreapta.
+Carriage: Contains 3 arguments: the carriage name (char), a pointer to the previous carriage, and a pointer to the next one.
+Train: Contains 2 arguments: a pointer to the Locomotive (sentinel node) and a pointer to the Mechanic (current position indicator).
 
-Functia WRITE: primeste ca parametri trenul si caracterul cu care sa fie schimbat numele vagonul
--schimba numele vagonului in care se afla mecanicul in acel moment cu noul caracter primit ca parametru al functiei
+## Movement and Modification Functions
+### Movement
+MOVE_LEFT: If the mechanic is in the first carriage (locomotive is to the left), they move to the last carriage. Otherwise, they move one position to the left.
+MOVE_RIGHT: If the mechanic is in the last carriage, I allocate memory for a new carriage named "#", connect it to the train, and move the mechanic there. Otherwise, the mechanic moves to the right.
 
-Functia CLEAR_CELL: primeste ca parametru trenul
-Cazul cand trenul are un singur vagon:
--schimbam numele acelui vagon cu caracterul "#", pentru a reveni la forma initiala
-In caz ca trenul are mai multe vagoane:
--fac legaturile dintre vagoane ca si cum vagonul in care se afla mecanicul nu exista
--mut mecanicul cu o pozitie mai in stanga
+### Editing
+WRITE: Changes the name of the current carriage where the mechanic is located to the new character received as a parameter.
+CLEAR_CELL: Removes the current carriage. If the train has only one carriage, it is reset to "#". If there are multiple carriages, the connections are re-established as if the current carriage didn't exist, and the mechanic moves one position to the left.
+CLEAR_ALL: To use the CLEAR_CELL logic, I start from the last carriage. As long as there are at least 2 carriages, I remove them one by one. Finally, the remaining carriage is renamed to "#" using the WRITE function.
+INSERT_LEFT / INSERT_RIGHT: Allocates memory for a new carriage with a specific character. It handles the re-linking with adjacent carriages and moves the mechanic into the newly created carriage (if INSERT_LEFT is called at the first carriage, it returns an "ERROR").
 
-Functia CLEAR_ALL: primeste ca parametru trenul
--ca sa pot folosi functia CLEAR_CELL care la final muta mecanicul in stanga, pornesc de la ultimul vagon al trenului
--cat timp in tren sunt cel putin 2 vagoane, elimin cate unul folosind functia CLEAR_CELL
--la final, cand a mai ramas un vagon, il redenumesc "#" cu ajutorul functiei WRITE
+## Search Logic
+SEARCH: Starts from the mechanic and traverses the train circularly. If string S is found, the mechanic is moved to the starting position of the match.
+SEARCH_RIGHT: Searches for string S to the right, up to the last carriage. If found, the mechanic moves to the last character of the match.
+SEARCH_LEFT: Searches for string S to the left, up to the first carriage. If found, the mechanic moves to the last character of the match.
+In all cases, if the string is not found, an "ERROR" message is printed to the output file.
 
-Functia INSERT_LEFT: primeste ca parametri trenul, caracterul cu care sa fie inscriptionat noul vagon si fisierul de output
-Cazul cand mecanicul se afla in primul vagon:
--nu se poate insera un vagon la stanga si afisez in fisierul de output mesajul "ERROR"
-In caz ca mecanicul nu se afla in primul vagon:
--aloc memorie pentru noul vagon si il denumesc cu caracterul primit ca parametru in functie
--fac legaturile cu vagonul in care se afla mecanicul si cu cel anterior
--mut mecanicul in noul vagon
+## Command Management (tema1.c file)
+### Queue System
+I defined a QueueNode (command name and next pointer) and a Queue (front, rear, and length). I implemented several helper functions:
+enqueue / dequeue: Standard operations for the back/front of the queue.
+enqueue2 / dequeue2: Specialized functions used for the SWITCH command to insert/remove from the opposite ends.
 
-Functia INSERT_RIGHT: primeste ca parametri trenul si caracterul cu care sa fie inscriptionat noul vagon
--aloc memorie pentru noul vagon si il denumesc cu caracterul primit ca parametru in functie
--fac legaturile cu vagonul in care se afla mecanicul si cu cel de dupa
--mut mecanicul in noul vagon
+### Main Execution Flow
+Initialization: Memory is allocated for the train, locomotive, and the initial "#" carriage. Files tema1.in and tema1.out are opened.
+Reading: The program reads the number of commands and processes the file line by line.
+SWITCH Logic: A variable s (0 or 1) tracks the switch state. If s=1, new commands are added to the front of the queue (enqueue2).
+EXECUTE: This command picks the next task from the queue (based on the s state), runs the corresponding function from tren.h, and frees the command memory.
 
-Functia SEARCH: primeste ca parametri trenul, sirul S care urmeaza sa fie cautat si fisierul de output
--incep cu un iterator i pe care il initializez cu 0 si pe care il voi folosi pentru a parcurge sirul cautat
--variabila nr care este initializata cu 0 va fi folosita pentru a contoriza de cate ori caracterele de pe vagoane corespund
-cu cele din sir
--voi lua si doua variabile de tip Vagon, pos pentru a retine in ea pozitia s-a gasit sirul cautat, si temp cu care voi parcurge
-circular trenul
--pornesc de la pozitia mecanicului cu variabila temp si parcurg trenul pana la vagonul de dinaintea adresei unde se afla mecanicul
-initial
--daca inscriptia vagonului se potriveste cu caracterul curent al sirului S, atunci contorizez acest lucru in variabila nr, iar daca
-sunt la primul caracter gasit salvez pozitia mecanicului in variabila pos, apoi trec la urmatorul caracter din S, crescandu-l pe i
--in caz contrar, resetez variabilele nr si i de la 0
--daca vagonul in care ma aflu este anterior locomotivei, voi muta mecanicul cu 2 pozitii, daca nu, doar cu una
--la final, daca numarul de caractere gasite, reprezentate de variabila nr, coincide cu numarul de caractere pe care il are sirul S,
-atunci sirul a fost gasit si mecanicul este mutat la pozitia salvata in variabila pos
--altfel, daca sirul nu s-a gasit, se va afisa in fisierul de output mesajul "ERROR"
+Instant Commands: SHOW and SHOW_CURRENT are not added to the queue; they are executed immediately when encountered.
 
-Functia SEARCH_RIGHT: primeste ca parametri trenul, sirul S care urmeaza sa fie cautat si fisierul de output
--incep cu un iterator i pe care il initializez cu 0 si pe care il voi folosi pentru a parcurge sirul cautat
--variabila nr care este initializata cu 0 va fi folosita pentru a contoriza de cate ori caracterele de pe vagoane corespund
-cu cele din sir
--voi lua si doua variabile de tip Vagon, pos pentru a retine in ea pozitia ultimului caracter din sirul cautat, si temp cu care voi parcurge
-trenul
--pornesc de la pozitia mecanicului cu variabila temp si parcurg trenul pana la ultimul vagon ce se afla in tren
--daca inscriptia vagonului se potriveste cu caracterul curent al sirului S, atunci contorizez acest lucru in variabila nr si salvez pozitia unde
-s-a gasit in variabila pos, apoi trec la urmatorul caracter din S, crescandu-l pe i
--in caz contrar, resetez variabilele nr si i de la 0
--mut mecanicul in vagonul urmator
--la final, daca numarul de caractere gasite, reprezentate de variabila nr, coincide cu numarul de caractere pe care il are sirul S,
-atunci sirul a fost gasit si mecanicul este mutat la pozitia salvata in variabila pos
--altfel, daca sirul nu s-a gasit, se va afisa in fisierul de output mesajul "ERROR"
-
-Functia SEARCH-LEFT: primeste ca parametri trenul, sirul S care urmeaza sa fie cautat si fisierul de output
--incep cu un iterator i pe care il initializez cu 0 si pe care il voi folosi pentru a parcurge sirul cautat
--variabila nr care este initializata cu 0 va fi folosita pentru a contoriza de cate ori caracterele de pe vagoane corespund
-cu cele din sir
--voi lua si doua variabile de tip Vagon, pos pentru a retine in ea pozitia ultimului caracter din sirul cautat, si temp cu care voi parcurge
-trenul
--pornesc de la pozitia mecanicului cu variabila temp si parcurg trenul pana la primul vagon ce se afla in tren
--daca inscriptia vagonului se potriveste cu caracterul curent al sirului S, atunci contorizez acest lucru in variabila nr si salvez pozitia unde
-s-a gasit in variabila pos, apoi trec la urmatorul caracter din S, crescandu-l pe i
--in caz contrar, resetez variabilele nr si i de la 0
--mut mecanicul in vagonul ce se afla in fata celui curent
--la final, daca numarul de caractere gasite, reprezentate de variabila nr, coincide cu numarul de caractere pe care il are sirul S,
-atunci sirul a fost gasit si mecanicul este mutat la pozitia salvata in variabila pos
--altfel, daca sirul nu s-a gasit, se va afisa in fisierul de output mesajul "ERROR"
-
-Functia SHOW_CURRENT: primeste ca parametri trenul si fisierul de output
--afiseaza in fisierul de output numele vagonului in care se afla mecanicul
-
-Functia SHOW: primeste ca parametri trenul si fisierul de output
--ia o variabila de tip Vagon cu care sa parcurg vagoanele trenului
--incep parcurgerea de la primul vagon, cel de dupa locomotiva, pana la ultimul si le afisez pe rand in fisierul de output
--daca vagonul pe care urmeaza sa-l afisez esti si vagonul in care se afla mecanicul, atunci il afisez intre doua bare "| |"
-
-Fisierul tema1.c:
-Am definit doua structuri de date: QueueNode care are 2 argumente (comanda care reprezinta numele comenzii care defineste un nod in coada si
-un pointer la urmatorul element din coada) si Queue care are 3 argumente (un pointer catre primul element din coada, un pointer catre al doilea
-element din coada si lungimea cozii)
-
-Am definit cateva functii care sa ma ajute cu prelucrarea cozii (m-am ajutat de cele facute la laborator)
-createQueue: creeaza o coada vida
-isQueueEmpty: verifica daca coada este goala
-enqueue: insereaza un element la finalul cozii
-enqueue2: insereaza un element la inceputul cozii (am folosit-o pentru functia SWITCH)
-dequeue: elmina primul element din coada
-dequeue2: elimina ultimul element din coada (am folosit-o tot pentru functia SWITCH)
-destroyQueue: distruge coada si da free
-
-Main:
--am alocat memorie pentru un tren si pentru locomotiva acestuia (santinela), dar si pentru primul vagon pe care l-am denumit "#"
--fac legaturile dintre locomotiva si primul vagon
--deschid fisierele de input (tema1.in) si output (tema1.out), cu permisiunea de a citi, respectiv de a scrie in ele
--imi iau doi pointeri pe care sa-i folosesc pentru a prelucra comenzile si argumentele lor (daca exista)
--creez o coada vida folosind functia createQueue
--citesc din fisier, folosind variabila n, numarul de comenzi care urmeaza sa fie citite
--declar o variabila s pe care o initializez cu 0 pe care o voi folosi pentru comanda SWITCH, aceasta va retine daca a fost facut SWITCH-ul (s = 1)
-sau daca nu (s = 0)
--folosind un while, citesc pe rand fiecare linie din fisier si elimin caracterul "\n" pe care functia fgets il pune la finalul liniei
--daca nu am intalnit comanda SWITCH pana in acel moment, adaug comenzile in coada asa cum se face in mod normal (cu functia enqueue), iar daca am
-intalnit SWITCH, le adaug prin fata cozii (cu functia enqueue2)
--tot in timpul in care citesc linie cu linie din fisier, verific daca intalnesc comanda EXECUTE pentru a executa comenzile din coada
--daca nu am intalnit SWITCH, prima comanda care urmeaza sa fie executata este cea din fata cozii, iar in caz contrar este ultima din coada
--dupa aceea, pe rand verific care este comanda ce trebuie executata si o execut folosind functiile create in fisierul tren.h, apoi o elimin din coada,
-folosind una din functiile dequeue si dequeue2, in functie de SWITCH, daca este pornit sau nu (dequeue pentru s = 0 si dequeue2 pentru s = 1)
--pe langa comanda execute care prelucreaza elementele din coada, exista si comanda SWITCH care daca este intalnita schimba valoarea variabilei s, fie in 0 fie in 1
--mai sunt si comenzile SHOW si SHOW_CURRENT care nu sunt adaugate in coada, ci sunt execute exact atunci cand sunt intalnite
--la finalul programului dezaloc memoria pentru tren, vagoane locomotiva, dar si pentru coada si inchid si fisierele de input si output pe care le-am deschis la inceput.
+Cleanup: At the end, the program deallocates all memory (carriages, locomotive, queue) and closes the files.
